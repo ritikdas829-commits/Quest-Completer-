@@ -11,10 +11,9 @@ import { dirname, join } from 'path';
 import { TokenStore } from './quest/tokenStore.js';
 import * as dbModule from './utils/db.js';
 
-// Trackers, Role Store & Expiry Service Imports
+// Trackers & Role Store Imports
 import { cacheGuildInvites } from './handlers/inviteTracker.js';
 import { syncRolesFromDB } from './quest/roleStore.js';
-import { startTrialExpiryChecker } from './quest/trialExpiryChecker.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
@@ -36,7 +35,7 @@ function banner() {
         `${col.white}${col.bright}   ╚══▀▀═╝  ╚═════╝  ╚═════╝   ╚═╝${col.reset}`,
         '',
         `${col.dim}  ─────────────────────────────────────────────────${col.reset}`,
-        `  ${col.green}●${col.reset} ${col.white}Quest Completer V1 - 5 Slots${col.reset}  ${col.dim}|${col.reset}   ${col.white}dsc.gg/synoraxdev${col.reset}`,
+        `  ${col.green}●${col.reset} ${col.white}Quest Bot - 2-Slot System${col.reset}  ${col.dim}|${col.reset}   ${col.white}dsc.gg/synoraxdev${col.reset}`,
         `${col.dim}  ─────────────────────────────────────────────────${col.reset}`,
         '',
     ];
@@ -156,7 +155,6 @@ client.once(Events.ClientReady, async () => {
             { body: commandsData },
         );
         
-        // Detailed log showing names just like before
         const commandNames = Array.from(client.commands.values()).map(c => c.data.name).join(', ');
         console.log(`[SlashCmds] ✓ ${commandsData.length} command(s) registered: ${commandNames}`);
     } catch (error) {
@@ -165,10 +163,6 @@ client.once(Events.ClientReady, async () => {
 
     await cacheGuildInvites(client);
     console.log(`⚡ Guild invites cached successfully.`);
-
-    // ⏱️ Start automatic trial expiry checker background job
-    startTrialExpiryChecker(client);
-    console.log(`⏳ Trial expiry background checker service started.`);
 });
 
 client.login(TOKEN);
