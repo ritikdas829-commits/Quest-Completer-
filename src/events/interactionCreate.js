@@ -5,12 +5,11 @@
 
 import { handleGuideButtons } from '../commands/guide.js';
 import { handleButton as handlePremiumButton, handleModal as handlePremiumModal } from '../commands/premiumLink.js';
-import { handleActivationButton, handleActivationModalSubmit } from '../handlers/keyActivationHandler.js';
 import { buildQuestSolverPanel } from '../quest/questUI.js';
 import { buildHelpPanel } from '../commands/help.js';
 import { QuestClient } from '../quest/questClient.js';
 import { QuestManager } from '../quest/questManager.js';
-import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, MessageFlags } from 'discord.js';
+import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, MessageFlags, Colors } from 'discord.js';
 import { getEmojis } from '../quest/emoji.js';
 import { startUserOnlinePresence, stopUserOnlinePresence } from '../quest/userPresence.js';
 import { checkActivityCooldown } from '../quest/suspiciousActivity.js';
@@ -130,12 +129,6 @@ export default {
                 return;
             }
 
-            // 3.5. Key Activation Button Handler
-            if (interaction.isButton() && interaction.customId === 'open_activate_modal') {
-                const handled = await handleActivationButton(interaction);
-                if (handled) return;
-            }
-
             // 3.6. Copy Key Button Handler
             if (interaction.isButton() && interaction.customId.startsWith('copy_key_')) {
                 const keyToCopy = interaction.customId.replace('copy_key_', '');
@@ -227,11 +220,6 @@ export default {
 
             // 8. Modals Handler
             if (interaction.isModalSubmit()) {
-                if (interaction.customId === 'orbie_activate_modal') {
-                    await handleActivationModalSubmit(interaction, client);
-                    return;
-                }
-
                 if (interaction.customId === 'linkid-modal') {
                     await interaction.deferReply({ flags: 64 });
                     const token = interaction.fields.getTextInputValue('discord_token_input');
