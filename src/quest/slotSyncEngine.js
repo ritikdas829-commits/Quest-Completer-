@@ -1,58 +1,46 @@
-l/**
- * slotSyncEngine.js - Automated Slot & Role Synchronization Engine (FIXED FOR ALL 6 SLOTS)
+/**
+ * slotSyncEngine.js - Automated Slot & Role Synchronization Engine (Strict 2-Slot System)
  * Location: src/quest/slotSyncEngine.js
  */
 
-import { getProgressiveSlots } from './slotSystem.js';
 import { getRoles } from './roleStore.js';
 
 /**
- * Synchronizes a user's Discord roles and slot access based on their current status.
+ * Synchronizes a user's Discord roles and 2-slot access based on invites and boosts.
  * @param {GuildMember} member - The Discord guild member object.
  * @param {Client} client - The Discord client instance.
+ * @param {number} userInvites - Number of valid invites made by the user
  */
-export async function syncUserSlotsAndRoles(member, client) {
+export async function syncUserSlotsAndRoles(member, client, userInvites = 0) {
     try {
         if (!member || member.user?.bot || !member.guild) return;
 
         const guild = member.guild;
         const roles = getRoles(guild.id) || {};
         
-        // Fetch slot details and progression state
-        const slotData = await getProgressiveSlots(member);
-        const { invites, boosts } = slotData;
+        const isBooster = Boolean(member.premiumSince);
 
-        // 1. Check if user unlocked higher tiers (2/5/10/15 Invites or 1/2 Boosts)
-        const hasSlot2 = invites >= 2;
-        const hasSlot3 = invites >= 5;
-        const hasSlot4 = invites >= 10;
-        const hasSlot5 = invites >= 15 || boosts >= 1;
-        const hasSlot6 = boosts >= 2;
+        // 1. Check conditions for our Strict 2-Slot System
+        // Slot 1: Requires 2 Invites
+        const hasSlot1Unlocked = userInvites >= 2;
+        // Slot 2: Requires Server Boost (Locks Auto-Quest)
+        const hasSlot2Unlocked = isBooster;
 
-        // 2. AUTO-ASSIGN PROGRESSIVE ROLES safely for all 6 slots
-        const roleSlot2 = roles.ROLE_SLOT_2 || roles.ROLE_2_INVITES;
-        const roleSlot3 = roles.ROLE_SLOT_3 || roles.ROLE_5_INVITES;
-        const roleSlot4 = roles.ROLE_SLOT_4 || roles.ROLE_10_INVITES;
-        const roleSlot5 = roles.ROLE_1_BOOST || roles.ROLE_SLOT_5;
-        const roleSlot6 = roles.ROLE_2_BOOST || roles.ROLE_SLOT_6;
+        // 2. AUTO-ASSIGN ROLES for Slot 1 and Slot 2
+        const roleSlot1 = roles.ROLE_2_INVITES || roles.ROLE_SLOT_1;
+        const roleSlot2 = roles.ROLE_1_BOOST || roles.ROLE_SLOT_2;
 
-        if (hasSlot2 && roleSlot2 && !member.roles.cache.has(roleSlot2)) {
+        // Assign Slot 1 Role if conditions met
+        if (hasSlot1Unlocked && roleSlot1 && !member.roles.cache.has(roleSlot1)) {
+            await member.roles.add(roleSlot1).catch(() => {});
+        }
+
+        // Assign Slot 2 Boost Role if conditions met
+        if (hasSlot2Unlocked && roleSlot2 && !member.roles.cache.has(roleSlot2)) {
             await member.roles.add(roleSlot2).catch(() => {});
         }
-        if (hasSlot3 && roleSlot3 && !member.roles.cache.has(roleSlot3)) {
-            await member.roles.add(roleSlot3).catch(() => {});
-        }
-        if (hasSlot4 && roleSlot4 && !member.roles.cache.has(roleSlot4)) {
-            await member.roles.add(roleSlot4).catch(() => {});
-        }
-        if (hasSlot5 && roleSlot5 && !member.roles.cache.has(roleSlot5)) {
-            await member.roles.add(roleSlot5).catch(() => {});
-        }
-        if (hasSlot6 && roleSlot6 && !member.roles.cache.has(roleSlot6)) {
-            await member.roles.add(roleSlot6).catch(() => {});
-        }
 
-        console.log(`⚡ [SlotSyncEngine] Successfully synced ${member.user.tag} (All 6 Slots Checked & Managed).`);
+        console.log(`⚡ [SlotSyncEngine] Successfully synced 2-Slot system for ${member.user.tag} (Invites: ${userInvites}, Booster: ${isBooster}).`);
     } catch (err) {
         console.error(`Error in syncUserSlotsAndRoles for ${member?.id}:`, err.message);
     }
