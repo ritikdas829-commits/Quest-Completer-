@@ -1,5 +1,5 @@
 /**
- * tokenStore.js — Upgraded Multi-Slot MongoDB Token Store (Supports up to 10 Slots)
+ * tokenStore.js — Upgraded 2-Slot MongoDB Token Store
  * Location: src/quest/tokenStore.js
  */
 
@@ -8,11 +8,11 @@ import mongoose from 'mongoose';
 
 const ALGORITHM = 'aes-256-gcm';
 
-// Upgraded Schema — Supports up to 10 slots
+// Upgraded Schema — Strictly supports 2 slots (Slot 1: Invites, Slot 2: Boost)
 const userTokenSchema = new mongoose.Schema({
     guildId: { type: String, required: true, index: true },
     userId: { type: String, required: true, index: true },
-    slot: { type: Number, required: true, min: 1, max: 10, index: true },
+    slot: { type: Number, required: true, min: 1, max: 2, index: true },
     encryptedData: { type: String, required: true },
     username: { type: String, default: '' },
     linkedUserId: { type: String, default: '' },
@@ -84,7 +84,7 @@ export class TokenStore {
                     isActive: doc.isActive || false
                 });
             }
-            console.log(`🔑 Loaded ${docs.length} encrypted token(s) — ${new Set(docs.map(d=>d.guildId)).size} guilds — Multi server persistent`);
+            console.log(`🔑 Loaded ${docs.length} encrypted token(s) into 2-Slot Engine cache`);
         } catch (err) {
             console.error('❌ Error loading tokens from MongoDB:', err.message);
         }
@@ -162,16 +162,15 @@ export class TokenStore {
         }
     }
 
-    // 🚀 FIXED: Automatically sets newly saved/updated tokens to ACTIVE so users don't need to relink!
     async saveSlot({ guildId, ownerId, slot, token, linkedUserId = '', username = '', avatar = '', isActive = true }) {
         try {
             if (!ownerId || !slot) return false;
-            if (slot < 1 || slot > 10) return false;
+            if (slot < 1 || slot > 2) return false; // Strictly restricted to 2 Slots
 
             const targetGuild = guildId || 'global';
             const userId = ownerId;
             
-            // Deactivate other slots for this user and make this one active
+            // Deactivate other slot for this user and activate current slot
             await TokenModel.updateMany({ userId }, { isActive: false });
 
             const encrypted = encrypt(token, this.key);
@@ -186,7 +185,7 @@ export class TokenStore {
                 { upsert: true, new: true }
             );
 
-            console.log(`✅ Token saved & set active [${targetGuild}] ${userId} slot ${slot} — Encrypted — Persistent`);
+            console.log(`✅ Token saved & set active [${targetGuild}] ${userId} Slot ${slot}`);
             return true;
         } catch (err) {
             console.error(`❌ Error saving slot [${guildId}] ${userId} slot ${slot}:`, err.message);
@@ -299,7 +298,7 @@ export class TokenStore {
 
     getUserSlots(guildId, userId) {
         const slots = [];
-        for (let i = 1; i <= 10; i++) {
+        for (let i = 1; i <= 2; i++) {
             if (this.has(guildId, userId, i)) slots.push(i);
         }
         return slots;
