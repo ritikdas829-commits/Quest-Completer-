@@ -93,7 +93,7 @@ export async function execute(interaction) {
             await interaction.deferReply({ flags: MessageFlags.IsComponentsV2 });
             const key = interaction.options.getString('key');
             await removeRole(guildId, key);
-            const c.new ContainerBuilder().setAccentColor(0xED4245);
+            const c = new ContainerBuilder().setAccentColor(0xED4245); // Fixed typo here
             c.addTextDisplayComponents(new TextDisplayBuilder().setContent(
                 `# 🗑️ Slot Role Removed\n` +
                 `• **Cleared Key:** \`${key}\`\n\n` +
