@@ -1,5 +1,5 @@
 /**
- * premiumLink.js - Full Detailed UI & Progressive Step-by-Step Panel (FINAL FIXED)
+ * premiumLink.js - Strict 2-Slot System Panel (Slot 1: 2 Invites | Slot 2: Server Boost)
  * Location: src/commands/premiumLink.js
  */
 
@@ -44,7 +44,6 @@ export async function buildPremiumLinkPanel(guildId, ownerId, tokenStore, client
 
     let accounts = await tokenStore.getAllSlots(guildId, ownerId);
 
-    // Auto-fix: agar koi active nahi hai toh pehle wale ko active banao (sirf ek baar)
     if (accounts.length > 0) {
         const activeAccounts = accounts.filter(a => a.isActive);
         if (activeAccounts.length === 0) {
@@ -57,16 +56,17 @@ export async function buildPremiumLinkPanel(guildId, ownerId, tokenStore, client
     }
 
     const c1 = new ContainerBuilder().setAccentColor(0x5865F2);
-    c1.addTextDisplayComponents(new TextDisplayBuilder().setContent(`# ${EMOJI.link_icon || '🔗'} Premium Link`));
+    c1.addTextDisplayComponents(new TextDisplayBuilder().setContent(`# ${EMOJI.link_icon || '🔗'} 2-Slot Premium Token System`));
     c1.addTextDisplayComponents(new TextDisplayBuilder().setContent(
-        `**Terms & Privacy**\nBy linking your Discord token, you allow the premium bot to use it for quest completion.\n` +
-        `Use \`${prefix}guide\` for token guide. Active slot runs quests — Use \`${prefix}quest\` to run active, \`${prefix}questall\` to run all slots.\n\n` +
-        `> **Invites:** \`${invites}\` | **Boosts:** \`${boosts}\``
+        `**Slot System Overview:**\n` +
+        `• **Slot #1 (Invites):** Unlock by reaching **2 server invites**.\n` +
+        `• **Slot #2 (Boosts):** Unlock by **Boosting the server** (Unlocks 24/7 Auto-Quest).\n\n` +
+        `> **Invites:** \`${invites}\` | **Server Boost:** \`${boosts > 0 ? 'Active 🚀' : 'Inactive'}\``
     ));
     c1.addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# Support server: ${SUPPORT_SERVER}`));
 
     const c2 = new ContainerBuilder().setAccentColor(0x2B2D31);
-    c2.addTextDisplayComponents(new TextDisplayBuilder().setContent(`## ${EMOJI.link_gear || '⚙️'} Account Panel (${slotsToShow} Visible Slots)`));
+    c2.addTextDisplayComponents(new TextDisplayBuilder().setContent(`## ${EMOJI.link_gear || '⚙️'} Slot Management`));
 
     for (let idx = 0; idx < slots.length; idx++) {
         const slotData = slots[idx];
@@ -76,39 +76,36 @@ export async function buildPremiumLinkPanel(guildId, ownerId, tokenStore, client
         if (!linked) {
             if (slotData.can) {
                 c2.addTextDisplayComponents(new TextDisplayBuilder().setContent(
-                    `### #${slotNum} Account Configuration\n` +
-                    `• **User:** Not Linked (${slotData.label})\n` +
+                    `### Slot #${slotNum} — ${slotData.label}\n` +
+                    `• **User:** Not Linked\n` +
                     `• **Status:** Not Active\n` +
                     `• **Requirement:** ${slotData.need} — ${EMOJI.link_success || '✅'} Unlocked\n` +
-                    `• **Account Age:** N/A\n` +
-                    `• **Linked At:** N/A`
+                    `• **Status:** Ready to link token`
                 ));
                 c2.addActionRowComponents(new ActionRowBuilder().addComponents(
-                    new ButtonBuilder().setCustomId(`link_slot_${slotNum}`).setLabel('Link').setStyle(ButtonStyle.Success).setEmoji('🔗')
+                    new ButtonBuilder().setCustomId(`link_slot_${slotNum}`).setLabel(`Link Slot #${slotNum}`).setStyle(ButtonStyle.Success).setEmoji('🔗')
                 ));
             } else {
                 c2.addTextDisplayComponents(new TextDisplayBuilder().setContent(
-                    `### #${slotNum} Account Configuration ${EMOJI.link_lock || '🔒'}\n` +
-                    `• **User:** Locked (${slotData.label})\n` +
+                    `### Slot #${slotNum} — ${slotData.label} ${EMOJI.link_lock || '🔒'}\n` +
                     `• **Status:** Locked\n` +
                     `• **Requirement:** ${slotData.need}\n` +
                     `• **Note:** ${slotData.reason}`
                 ));
                 c2.addActionRowComponents(new ActionRowBuilder().addComponents(
-                    new ButtonBuilder().setCustomId(`locked_slot_${slotNum}`).setLabel(`Locked (${slotData.need})`).setStyle(ButtonStyle.Secondary).setDisabled(true).setEmoji('🔒')
+                    new ButtonBuilder().setCustomId(`link_slot_${slotNum}`).setLabel(`Link Slot #${slotNum} (Locked)`).setStyle(ButtonStyle.Secondary).setEmoji('🔒')
                 ));
             }
         } else {
             const isCurrentlyActive = Boolean(linked.isActive);
-            const status = isCurrentlyActive ? `Active ${EMOJI.link_success || '✅'}` : 'Not Active';
+            const status = isCurrentlyActive ? `Active ${EMOJI.link_success || '✅'}` : 'Stored';
             const age = getAccountAge(linked.linkedUserId);
             const linkedAt = linked.linkedAt ? new Date(linked.linkedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'N/A';
             const avatarUrl = linked.avatar ? `https://cdn.discordapp.com/avatars/${linked.linkedUserId}/${linked.avatar}.png?size=128` : null;
             
             const content = 
-                `### #${slotNum} Account Configuration\n` +
+                `### Slot #${slotNum} — ${slotData.label}\n` +
                 `• **User:** ${linked.username} (\`${linked.linkedUserId || 'N/A'}\`)\n` +
-                `• **Slot Type:** ${slotData.label}\n` +
                 `• **Status:** ${status}\n` +
                 `• **Account Age:** ${age}\n` +
                 `• **Linked At:** ${linkedAt}`;
@@ -120,9 +117,9 @@ export async function buildPremiumLinkPanel(guildId, ownerId, tokenStore, client
             }
             
             const row = new ActionRowBuilder();
-            row.addComponents(new ButtonBuilder().setCustomId(`unlink_slot_${slotNum}`).setLabel('Unlink').setStyle(ButtonStyle.Danger));
+            row.addComponents(new ButtonBuilder().setCustomId(`unlink_slot_${slotNum}`).setLabel(`Unlink Slot #${slotNum}`).setStyle(ButtonStyle.Danger));
             if (!isCurrentlyActive) {
-                row.addComponents(new ButtonBuilder().setCustomId(`select_slot_${slotNum}`).setLabel('Select').setStyle(ButtonStyle.Primary));
+                row.addComponents(new ButtonBuilder().setCustomId(`select_slot_${slotNum}`).setLabel(`Activate Slot #${slotNum}`).setStyle(ButtonStyle.Primary));
             }
             c2.addActionRowComponents(row);
         }
@@ -132,20 +129,21 @@ export async function buildPremiumLinkPanel(guildId, ownerId, tokenStore, client
         }
     }
 
-    c2.addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# Active slot will run quests — Support: ${SUPPORT_SERVER}`));
+    c2.addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# Use \`${prefix}quest\` to run active slot, or \`${prefix}autoquest\` for background boost runs.`));
     return { components: [c1, c2], flags: MessageFlags.IsComponentsV2 };
 }
 
 export function buildLinkModal(slot) {
-    const m = new ModalBuilder().setCustomId(`link_modal_slot_${slot}`).setTitle(`Link Slot #${slot}`);
+    const slotLabel = slot === 1 ? 'Slot #1 (2 Invites)' : 'Slot #2 (Server Boost)';
+    const m = new ModalBuilder().setCustomId(`link_modal_slot_${slot}`).setTitle(`Link ${slotLabel}`);
     m.addComponents(new ActionRowBuilder().addComponents(
-        new TextInputBuilder().setCustomId('token_input').setLabel('Discord Token').setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder('Paste Discord token here...').setMinLength(10).setMaxLength(400)
+        new TextInputBuilder().setCustomId('token_input').setLabel('Discord Token').setStyle(TextInputStyle.Short).setRequired(true).setPlaceholder(`Paste Discord token for Slot #${slot}...`).setMinLength(10).setMaxLength(400)
     ));
     return m;
 }
 
-const linkData = new SlashCommandBuilder().setName('link').setDescription('Premium Link - Progressive System');
-const unlinkData = new SlashCommandBuilder().setName('unlink').setDescription('Unlink slot').addIntegerOption(o=>o.setName('slot').setDescription('Slot number (1-10)').setRequired(true).setMinValue(1).setMaxValue(10));
+const linkData = new SlashCommandBuilder().setName('link').setDescription('Open 2-Slot Premium Token Panel');
+const unlinkData = new SlashCommandBuilder().setName('unlink').setDescription('Unlink a slot').addIntegerOption(o=>o.setName('slot').setDescription('Slot number (1 or 2)').setRequired(true).setMinValue(1).setMaxValue(2));
 
 export const linkCmd = {
     data: linkData,
@@ -195,7 +193,7 @@ export const unlinkCmd = {
             const EMOJI = await getEmojis(message.guild.id);
             const prefix = getClientPrefix(client, message.guild.id);
             const slot = parseInt(args[0]); 
-            if (!slot || slot < 1 || slot > 10) return message.reply(`${EMOJI.link_error || '❌'} Correct usage: \`${prefix}unlink 1\``);
+            if (!slot || slot < 1 || slot > 2) return message.reply(`${EMOJI.link_error || '❌'} Correct usage: \`${prefix}unlink 1\` or \`${prefix}unlink 2\``);
             await client.tokenStore.removeSlot(message.guild.id, message.author.id, slot);
             const panel = await buildPremiumLinkPanel(message.guild.id, message.author.id, client.tokenStore, client, message.member);
             await message.reply(panel);
@@ -212,19 +210,19 @@ export async function handleButton(interaction, client) {
     const EMOJI = await getEmojis(guildId);
     const rawId = interaction.customId;
 
-    if (rawId.startsWith('locked_slot_')) {
-        return await interaction.reply({ content: `🔒 **Slot Locked!** You need more invites/boosts to unlock this slot.`, flags: MessageFlags.Ephemeral }).catch(()=>{});
-    }
-
     if (rawId.startsWith('link_slot_')) {
         const slotNum = parseInt(rawId.split('_')[2]);
         const prog = await getProgressiveSlots(member);
         const slotData = prog.slots.find(s => s.slot === slotNum);
         if (!slotData?.can) {
-            const payload = { 
-                content: `${EMOJI.link_lock || '🔒'} **Slot #${slotNum} Locked!**\n**Requirement:** ${slotData?.need}\n${slotData?.reason}`, 
-                flags: MessageFlags.Ephemeral 
-            };
+            const c = new ContainerBuilder().setAccentColor(0xED4245);
+            c.addTextDisplayComponents(new TextDisplayBuilder().setContent(
+                `# ${EMOJI.link_lock || '🔒'} Slot #${slotNum} Locked\n\n` +
+                `Aap is slot ko link nahi kar sakte kyunki iski requirement poori nahi hai!\n` +
+                `• **Required:** ${slotData?.need}\n` +
+                `• **Reason:** ${slotData?.reason}`
+            ));
+            const payload = { components: [c], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral };
             if (interaction.deferred || interaction.replied) {
                 return await interaction.followUp(payload);
             }
@@ -282,7 +280,7 @@ export async function handleModal(interaction, client) {
         }
         const successContainer = new ContainerBuilder().setAccentColor(0x57F287);
         successContainer.addTextDisplayComponents(new TextDisplayBuilder().setContent(
-            `# ${EMOJI.link_success || '✅'} Slot #${slot} Linked!\nLinked as **"${data.username}"**.\n\nYou can now use \`${prefix}quest\`, \`${prefix}questall\`, and \`${prefix}questlist\`.\nTo remove it, use \`${prefix}unlink ${slot}\`.`
+            `# ${EMOJI.link_success || '✅'} Slot #${slot} Linked!\nLinked as **"${data.username}"**.\n\nYou can now use \`${prefix}quest\` and manage your 2 slots.`
         ));
         await interaction.editReply({ components: [successContainer], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
     } catch (e) {
