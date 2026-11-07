@@ -1,5 +1,5 @@
 /**
- * premiumLink.js - Strict 2-Slot System Panel (Slot 1: 2 Invites | Slot 2: Server Boost)
+ * premiumLink.js - Strict 2-Slot System Panel with Guide Reference
  * Location: src/commands/premiumLink.js
  */
 
@@ -40,7 +40,7 @@ export async function buildPremiumLinkPanel(guildId, ownerId, tokenStore, client
     const EMOJI = await getEmojis(guildId || 'global');
     const prefix = getClientPrefix(client, guildId);
     const guildMember = member || await client.guilds.cache.get(guildId)?.members.fetch(ownerId).catch(() => null);
-    const { slots, invites, boosts, slotsToShow } = await getProgressiveSlots(guildMember);
+    const { slots, invites, boosts } = await getProgressiveSlots(guildMember);
 
     let accounts = await tokenStore.getAllSlots(guildId, ownerId);
 
@@ -58,6 +58,8 @@ export async function buildPremiumLinkPanel(guildId, ownerId, tokenStore, client
     const c1 = new ContainerBuilder().setAccentColor(0x5865F2);
     c1.addTextDisplayComponents(new TextDisplayBuilder().setContent(`# ${EMOJI.link_icon || '🔗'} 2-Slot Premium Token System`));
     c1.addTextDisplayComponents(new TextDisplayBuilder().setContent(
+        `**Terms & Privacy**\nBy linking your Discord token, you allow the premium bot to use it for quest completion.\n` +
+        `Use \`${prefix}guide\` for token guide. Active slot runs quests — Use \`${prefix}quest\` to run active, \`${prefix}autoquest\` for background boost runs.\n\n` +
         `**Slot System Overview:**\n` +
         `• **Slot #1 (Invites):** Unlock by reaching **2 server invites**.\n` +
         `• **Slot #2 (Boosts):** Unlock by **Boosting the server** (Unlocks 24/7 Auto-Quest).\n\n` +
