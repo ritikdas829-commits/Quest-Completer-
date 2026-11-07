@@ -1,5 +1,5 @@
 /**
- * inviteTracker.js - Robust Multi-Server Invite Tracker with User Mentions & Emojis
+ * inviteTracker.js - Multi-Server Invite Tracker (Strict 2-Slot System - Slot 1: 2 Invites)
  * Location: src/handlers/inviteTracker.js
  * Strict Rules: Account Age >= 7 Days, Rejoin Window >= 14 Days
  */
@@ -91,20 +91,10 @@ function getTargetRoles(guild) {
     try {
         const stored = getRoles(guild.id);
         const roles = {};
-        if (stored?.ROLE_SLOT_2 || stored?.ROLE_2_INVITES) {
-            const roleId = stored.ROLE_SLOT_2 || stored.ROLE_2_INVITES;
+        if (stored?.ROLE_SLOT_1 || stored?.ROLE_2_INVITES) {
+            const roleId = stored.ROLE_SLOT_1 || stored.ROLE_2_INVITES;
             const r = guild.roles.cache.get(roleId);
             if (r) roles.ROLE_2_INVITES = r;
-        }
-        if (stored?.ROLE_SLOT_3 || stored?.ROLE_5_INVITES) {
-            const roleId = stored.ROLE_SLOT_3 || stored.ROLE_5_INVITES;
-            const r = guild.roles.cache.get(roleId);
-            if (r) roles.ROLE_5_INVITES = r;
-        }
-        if (stored?.ROLE_SLOT_4 || stored?.ROLE_10_INVITES) {
-            const roleId = stored.ROLE_SLOT_4 || stored.ROLE_10_INVITES;
-            const r = guild.roles.cache.get(roleId);
-            if (r) roles.ROLE_10_INVITES = r;
         }
         return roles;
     } catch {
@@ -239,7 +229,6 @@ export async function handleInviteJoin(member) {
         inviterData.count = inviterData.invitedUsers.length;
         await saveUserDB(guild.id, inviter.id, inviterData);
 
-        // 🎯 Send Dynamic Welcome Format with Mentions (@User) & Inviter Total Count
         if (joinChannel) {
             const customWelcomeMsg = `✛ Welcome <@${member.id}> !\n` +
                                      `✛ Created **<t:${createdAt}:R>**\n` +
@@ -249,7 +238,7 @@ export async function handleInviteJoin(member) {
             await joinChannel.send({ content: customWelcomeMsg }).catch(() => {});
         }
 
-        // Role Sync for Invite Thresholds (2, 5, 10 invites)
+        // Role Sync for Slot 1 Invite Threshold (2 invites)
         const targetRoles = getTargetRoles(guild);
         const inviterMember = await guild.members.fetch(inviter.id).catch(() => null);
         if (!inviterMember) return;
@@ -257,21 +246,7 @@ export async function handleInviteJoin(member) {
         if (inviterData.count >= 2 && targetRoles.ROLE_2_INVITES) {
             if (!inviterMember.roles.cache.has(targetRoles.ROLE_2_INVITES.id)) {
                 await inviterMember.roles.add(targetRoles.ROLE_2_INVITES).catch(() => {});
-                if (joinChannel) await joinChannel.send(`${EMOJI.invite_success || '🎉'} <@${inviter.id}> unlocked **${targetRoles.ROLE_2_INVITES.name}**!`).catch(() => {});
-            }
-        }
-
-        if (inviterData.count >= 5 && targetRoles.ROLE_5_INVITES) {
-            if (!inviterMember.roles.cache.has(targetRoles.ROLE_5_INVITES.id)) {
-                await inviterMember.roles.add(targetRoles.ROLE_5_INVITES).catch(() => {});
-                if (joinChannel) await joinChannel.send(`${EMOJI.invite_success || '🎉'} <@${inviter.id}> unlocked **${targetRoles.ROLE_5_INVITES.name}**!`).catch(() => {});
-            }
-        }
-
-        if (inviterData.count >= 10 && targetRoles.ROLE_10_INVITES) {
-            if (!inviterMember.roles.cache.has(targetRoles.ROLE_10_INVITES.id)) {
-                await inviterMember.roles.add(targetRoles.ROLE_10_INVITES).catch(() => {});
-                if (joinChannel) await joinChannel.send(`${EMOJI.invite_success || '🎉'} <@${inviter.id}> unlocked **${targetRoles.ROLE_10_INVITES.name}**!`).catch(() => {});
+                if (joinChannel) await joinChannel.send(`${EMOJI.invite_success || '🎉'} <@${inviter.id}> unlocked **${targetRoles.ROLE_2_INVITES.name}** (Slot #1 Unlocked)!`).catch(() => {});
             }
         }
 
@@ -340,14 +315,6 @@ export async function handleInviteLeave(member) {
         const inviterMember = await guild.members.fetch(inviterId).catch(() => null);
 
         if (inviterMember) {
-            if (inviterData.count < 10 && targetRoles.ROLE_10_INVITES && inviterMember.roles.cache.has(targetRoles.ROLE_10_INVITES.id)) {
-                await inviterMember.roles.remove(targetRoles.ROLE_10_INVITES).catch(() => {});
-                if (leaveChannel) await leaveChannel.send(`${EMOJI.invite_lock || '🔒'} <@${inviterId}> lost **${targetRoles.ROLE_10_INVITES.name}**`).catch(() => {});
-            }
-            if (inviterData.count < 5 && targetRoles.ROLE_5_INVITES && inviterMember.roles.cache.has(targetRoles.ROLE_5_INVITES.id)) {
-                await inviterMember.roles.remove(targetRoles.ROLE_5_INVITES).catch(() => {});
-                if (leaveChannel) await leaveChannel.send(`${EMOJI.invite_lock || '🔒'} <@${inviterId}> lost **${targetRoles.ROLE_5_INVITES.name}**`).catch(() => {});
-            }
             if (inviterData.count < 2 && targetRoles.ROLE_2_INVITES && inviterMember.roles.cache.has(targetRoles.ROLE_2_INVITES.id)) {
                 await inviterMember.roles.remove(targetRoles.ROLE_2_INVITES).catch(() => {});
                 if (leaveChannel) await leaveChannel.send(`${EMOJI.invite_lock || '🔒'} <@${inviterId}> lost **${targetRoles.ROLE_2_INVITES.name}**`).catch(() => {});
