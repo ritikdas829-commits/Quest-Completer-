@@ -1,5 +1,5 @@
 /**
- * boostTracker.js - Precise Boost Role Management without interfering with trial/premium expiry
+ * boostTracker.js - Precise Boost Role Management for Strict 2-Slot System
  * Location: src/handlers/boostTracker.js
  */
 
@@ -14,10 +14,6 @@ function getBoostRoles(guild) {
             const r = guild.roles.cache.get(stored.ROLE_1_BOOST);
             if (r) roles.ROLE_1_BOOST = r;
         }
-        if (stored?.ROLE_2_BOOST) {
-            const r = guild.roles.cache.get(stored.ROLE_2_BOOST);
-            if (r) roles.ROLE_2_BOOST = r;
-        }
         return roles;
     } catch {
         return {};
@@ -25,24 +21,14 @@ function getBoostRoles(guild) {
 }
 
 /**
- * Accurately determines user boost level and strictly validates active status
+ * Validates active server boost status for Slot #2 (Auto-Quest Gateway)
  */
-function getBoostCount(member) {
+function isUserBoosting(member) {
     try {
-        if (!member) return 0;
-
-        const isBoosting = Boolean(member.premiumSince);
-        if (!isBoosting) return 0;
-
-        const roles = getRoles(member.guild?.id);
-        
-        if (roles?.ROLE_2_BOOST && member.roles.cache.has(roles.ROLE_2_BOOST)) {
-            return 2;
-        }
-
-        return 1;
+        if (!member) return false;
+        return Boolean(member.premiumSince);
     } catch {
-        return 0;
+        return false;
     }
 }
 
@@ -57,31 +43,19 @@ export async function handleBoostAdd(member) {
     try {
         const guild = member.guild;
         const boostRoles = getBoostRoles(guild);
-        const boosts = getBoostCount(member);
+        const boosting = isUserBoosting(member);
         const EMOJI = await getEmojis(guild.id || 'global');
 
-        if (!member.premiumSince || boosts === 0) {
+        if (!boosting) {
             await handleBoostRemove(member);
             return;
         }
 
-        // 1 Boost Case
-        if (boosts === 1 && boostRoles.ROLE_1_BOOST) {
-            if (boostRoles.ROLE_2_BOOST && member.roles.cache.has(boostRoles.ROLE_2_BOOST.id)) {
-                await member.roles.remove(boostRoles.ROLE_2_BOOST).catch(() => {});
-            }
-
+        // Grant Slot #2 Boost Role
+        if (boostRoles.ROLE_1_BOOST) {
             if (!member.roles.cache.has(boostRoles.ROLE_1_BOOST.id)) {
                 await member.roles.add(boostRoles.ROLE_1_BOOST).catch(() => {});
-                await sendSafeDM(member, `${EMOJI.success || '💎'} Thank you for boosting **${guild.name}**! **${boostRoles.ROLE_1_BOOST.name}** role unlocked.`);
-            }
-        }
-
-        // 2 or More Boosts Case
-        if (boosts >= 2 && boostRoles.ROLE_2_BOOST) {
-            if (!member.roles.cache.has(boostRoles.ROLE_2_BOOST.id)) {
-                await member.roles.add(boostRoles.ROLE_2_BOOST).catch(() => {});
-                await sendSafeDM(member, `${EMOJI.crown || '👑'} Double booster detected! **${boostRoles.ROLE_2_BOOST.name}** unlocked - Full Access!`);
+                await sendSafeDM(member, `${EMOJI.success || '💎'} Thank you for boosting **${guild.name}**! **Slot #2 (Auto-Quest)** unlocked via **${boostRoles.ROLE_1_BOOST.name}**.`);
             }
         }
 
@@ -97,28 +71,12 @@ export async function handleBoostRemove(member) {
         const boostRoles = getBoostRoles(guild);
         const EMOJI = await getEmojis(guild.id || 'global');
 
-        const isStillBoosting = Boolean(member.premiumSince);
+        const isStillBoosting = isUserBoosting(member);
 
         if (!isStillBoosting) {
-            const rolesToRemove = [];
             if (boostRoles.ROLE_1_BOOST && member.roles.cache.has(boostRoles.ROLE_1_BOOST.id)) {
-                rolesToRemove.push(boostRoles.ROLE_1_BOOST.id);
-            }
-            if (boostRoles.ROLE_2_BOOST && member.roles.cache.has(boostRoles.ROLE_2_BOOST.id)) {
-                rolesToRemove.push(boostRoles.ROLE_2_BOOST.id);
-            }
-
-            if (rolesToRemove.length > 0) {
-                await member.roles.remove(rolesToRemove).catch(() => {});
-                await sendSafeDM(member, `${EMOJI.lock || '🔒'} Your boost expired on **${guild.name}**. Boost roles have been automatically removed.`);
-            }
-        } else {
-            const boosts = getBoostCount(member);
-            if (boosts === 1 && boostRoles.ROLE_2_BOOST && member.roles.cache.has(boostRoles.ROLE_2_BOOST.id)) {
-                await member.roles.remove(boostRoles.ROLE_2_BOOST).catch(() => {});
-                if (boostRoles.ROLE_1_BOOST && !member.roles.cache.has(boostRoles.ROLE_1_BOOST.id)) {
-                    await member.roles.add(boostRoles.ROLE_1_BOOST).catch(() => {});
-                }
+                await member.roles.remove(boostRoles.ROLE_1_BOOST.id).catch(() => {});
+                await sendSafeDM(member, `${EMOJI.lock || '🔒'} Your boost expired on **${guild.name}**. Slot #2 Boost role has been automatically removed.`);
             }
         }
 
@@ -137,17 +95,6 @@ export async function handleBoostUpdate(oldMember, newMember) {
             await handleBoostAdd(newMember);
         } else if (hadBoost && !hasBoost) {
             await handleBoostRemove(newMember);
-        } else if (hadBoost && hasBoost) {
-            const oldBoosts = getBoostCount(oldMember);
-            const newBoosts = getBoostCount(newMember);
-            
-            if (newBoosts !== oldBoosts) {
-                if (newBoosts > oldBoosts) {
-                    await handleBoostAdd(newMember);
-                } else {
-                    await handleBoostRemove(newMember);
-                }
-            }
         }
     } catch (err) {
         console.error("Boost update error:", err.message);
