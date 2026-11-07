@@ -1,5 +1,5 @@
 /**
- * setupRolesCommand.js - Clean UI & Progressive Slot Roles Management (With Trial & Premium Roles)
+ * setupRolesCommand.js - Clean 2-Slot System Roles Configuration
  * Location: src/commands/setupRolesCommand.js
  */
 
@@ -8,28 +8,23 @@ import { getRolesAsync, setRole, removeRole, syncRolesFromDB } from '../quest/ro
 
 export const data = new SlashCommandBuilder()
     .setName('setuproles')
-    .setDescription('Setup progressive slot roles and activation roles for your server')
+    .setDescription('Setup 2-Slot system roles (2 Invites & Server Boost) for your server')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .addSubcommand(sub =>
         sub.setName('set')
-            .setDescription('Set a role for a progressive slot or activation tier')
+            .setDescription('Set a role for Slot 1 (Invites) or Slot 2 (Boost)')
             .addStringOption(opt =>
                 opt.setName('key')
-                    .setDescription('Select slot/activation tier')
+                    .setDescription('Select slot role tier')
                     .setRequired(true)
                     .addChoices(
-                        { name: '🎟️ Trial Key Activation Role', value: 'ROLE_TRIAL' },
-                        { name: '👑 Premium Key Activation Role', value: 'ROLE_PREMIUM' },
-                        { name: 'Slot 2 — 2 Invites Role', value: 'ROLE_2_INVITES' },
-                        { name: 'Slot 3 — 5 Invites Role', value: 'ROLE_5_INVITES' },
-                        { name: 'Slot 4 — 10 Invites Role', value: 'ROLE_10_INVITES' },
-                        { name: 'Slot 4 — 1 Server Boost Role', value: 'ROLE_1_BOOST' },
-                        { name: 'Slot 5 — 2 Server Boosts Role (Full Access)', value: 'ROLE_2_BOOST' },
+                        { name: '📩 Slot 1 — 2 Invites Role', value: 'ROLE_2_INVITES' },
+                        { name: '🚀 Slot 2 — Server Boost Role (Auto-Quest)', value: 'ROLE_1_BOOST' },
                     )
             )
             .addRoleOption(opt =>
                 opt.setName('role')
-                    .setDescription('Select the Discord role for this tier')
+                    .setDescription('Select the Discord role for this slot tier')
                     .setRequired(true)
             )
     )
@@ -38,22 +33,17 @@ export const data = new SlashCommandBuilder()
             .setDescription('Remove a role assignment from a slot tier')
             .addStringOption(opt =>
                 opt.setName('key')
-                    .setDescription('Select tier to clear')
+                    .setDescription('Select slot tier to clear')
                     .setRequired(true)
                     .addChoices(
-                        { name: '🎟️ Trial Key Activation Role', value: 'ROLE_TRIAL' },
-                        { name: '👑 Premium Key Activation Role', value: 'ROLE_PREMIUM' },
-                        { name: 'Slot 2 — 2 Invites Role', value: 'ROLE_2_INVITES' },
-                        { name: 'Slot 3 — 5 Invites Role', value: 'ROLE_5_INVITES' },
-                        { name: 'Slot 4 — 10 Invites Role', value: 'ROLE_10_INVITES' },
-                        { name: 'Slot 4 — 1 Server Boost Role', value: 'ROLE_1_BOOST' },
-                        { name: 'Slot 5 — 2 Server Boosts Role', value: 'ROLE_2_BOOST' },
+                        { name: '📩 Slot 1 — 2 Invites Role', value: 'ROLE_2_INVITES' },
+                        { name: '🚀 Slot 2 — Server Boost Role', value: 'ROLE_1_BOOST' },
                     )
             )
     )
     .addSubcommand(sub =>
         sub.setName('view')
-            .setDescription('View current slot tier roles configuration')
+            .setDescription('View current 2-Slot roles configuration')
     )
     .addSubcommand(sub =>
         sub.setName('sync')
@@ -70,18 +60,12 @@ export async function execute(interaction) {
             const roles = await getRolesAsync(guildId);
             const c = new ContainerBuilder().setAccentColor(0x5865F2);
             c.addTextDisplayComponents(new TextDisplayBuilder().setContent(
-                `# ⚙️ Progressive Slot & Key Roles Config\n` +
+                `# ⚙️ 2-Slot System Roles Configuration\n` +
                 `**Server:** \`${interaction.guild.name}\` | **ID:** \`${guildId}\`\n\n` +
-                `### 🔑 Key Activation Tiers\n` +
-                `• **Trial Key Role:** ${roles.ROLE_TRIAL ? `<@&${roles.ROLE_TRIAL}>` : '`❌ Not Set`'}\n` +
-                `• **Premium Key Role:** ${roles.ROLE_PREMIUM ? `<@&${roles.ROLE_PREMIUM}>` : '`❌ Not Set`'}\n\n` +
-                `### 📩 Invite Tiers\n` +
-                `• **Role 1 (2 Invites ➔ Slot 2):** ${roles.ROLE_2_INVITES ? `<@&${roles.ROLE_2_INVITES}>` : '`❌ Not Set`'}\n` +
-                `• **Role 2 (5 Invites ➔ Slot 3):** ${roles.ROLE_5_INVITES ? `<@&${roles.ROLE_5_INVITES}>` : '`❌ Not Set`'}\n` +
-                `• **Role 3 (10 Invites ➔ Slot 4):** ${roles.ROLE_10_INVITES ? `<@&${roles.ROLE_10_INVITES}>` : '`❌ Not Set`'}\n\n` +
-                `### 🚀 Server Boost Tiers\n` +
-                `• **Role 4 (1 Boost ➔ Slot 4 Boost):** ${roles.ROLE_1_BOOST ? `<@&${roles.ROLE_1_BOOST}>` : '`❌ Not Set`'}\n` +
-                `• **Role 5 (2 Boosts ➔ Slot 5 Full):** ${roles.ROLE_2_BOOST ? `<@&${roles.ROLE_2_BOOST}>` : '`❌ Not Set`'}\n\n` +
+                `### 📩 Slot 1 (Invite Tier)\n` +
+                `• **Slot 1 Role (2 Invites):** ${roles.ROLE_2_INVITES ? `<@&${roles.ROLE_2_INVITES}>` : '`❌ Not Set`'}\n\n` +
+                `### 🚀 Slot 2 (Server Boost Tier)\n` +
+                `• **Slot 2 Role (Server Boost):** ${roles.ROLE_1_BOOST ? `<@&${roles.ROLE_1_BOOST}>` : '`❌ Not Set`'}\n\n` +
                 `-# Use \`/setuproles set\` to assign roles directly from your Discord App.`
             ));
             await interaction.editReply({ components: [c], flags: MessageFlags.IsComponentsV2 });
@@ -95,11 +79,11 @@ export async function execute(interaction) {
             await setRole(guildId, key, role.id);
             const c = new ContainerBuilder().setAccentColor(0x57F287);
             c.addTextDisplayComponents(new TextDisplayBuilder().setContent(
-                `# ✅ Progressive Role Configured\n` +
-                `• **Tier Key:** \`${key}\`\n` +
+                `# ✅ Slot Role Configured\n` +
+                `• **Slot Key:** \`${key}\`\n` +
                 `• **Assigned Role:** ${role}\n` +
                 `• **Target Server:** \`${interaction.guild.name}\`\n\n` +
-                `Users who unlock this requirement will automatically gain slot/activation permissions!`
+                `Users who unlock this requirement will automatically gain slot permissions!`
             ));
             await interaction.editReply({ components: [c], flags: MessageFlags.IsComponentsV2 });
             return;
@@ -109,11 +93,11 @@ export async function execute(interaction) {
             await interaction.deferReply({ flags: MessageFlags.IsComponentsV2 });
             const key = interaction.options.getString('key');
             await removeRole(guildId, key);
-            const c = new ContainerBuilder().setAccentColor(0xED4245);
+            const c.new ContainerBuilder().setAccentColor(0xED4245);
             c.addTextDisplayComponents(new TextDisplayBuilder().setContent(
-                `# 🗑️ Role Tier Removed\n` +
-                `• **Cleared Tier Key:** \`${key}\`\n\n` +
-                `The role binding for this tier has been cleared successfully.`
+                `# 🗑️ Slot Role Removed\n` +
+                `• **Cleared Key:** \`${key}\`\n\n` +
+                `The role binding for this slot tier has been cleared successfully.`
             ));
             await interaction.editReply({ components: [c], flags: MessageFlags.IsComponentsV2 });
             return;
@@ -125,7 +109,7 @@ export async function execute(interaction) {
             const c = new ContainerBuilder().setAccentColor(0x5865F2);
             c.addTextDisplayComponents(new TextDisplayBuilder().setContent(
                 `# 🔄 Database Synchronization\n` +
-                `Successfully synced all progressive role settings from **MongoDB**!`
+                `Successfully synced 2-slot role settings from **MongoDB**!`
             ));
             await interaction.editReply({ components: [c], flags: MessageFlags.IsComponentsV2 });
             return;
@@ -146,18 +130,12 @@ export const setupRolesCmd = {
         const roles = await getRolesAsync(guildId);
         const c = new ContainerBuilder().setAccentColor(0x5865F2);
         c.addTextDisplayComponents(new TextDisplayBuilder().setContent(
-            `# ⚙️ Progressive Slot & Key Roles Config\n` +
+            `# ⚙️ 2-Slot System Roles Configuration\n` +
             `**Server:** \`${message.guild.name}\`\n\n` +
-            `### 🔑 Key Activation Tiers\n` +
-            `• **Trial Key Role:** ${roles.ROLE_TRIAL ? `<@&${roles.ROLE_TRIAL}>` : '`❌ Not Set`'}\n` +
-            `• **Premium Key Role:** ${roles.ROLE_PREMIUM ? `<@&${roles.ROLE_PREMIUM}>` : '`❌ Not Set`'}\n\n` +
-            `### 📩 Invite Tiers\n` +
-            `• **Role 1 (2 Invites):** ${roles.ROLE_2_INVITES ? `<@&${roles.ROLE_2_INVITES}>` : '`❌ Not Set`'}\n` +
-            `• **Role 2 (5 Invites):** ${roles.ROLE_5_INVITES ? `<@&${roles.ROLE_5_INVITES}>` : '`❌ Not Set`'}\n` +
-            `• **Role 3 (10 Invites):** ${roles.ROLE_10_INVITES ? `<@&${roles.ROLE_10_INVITES}>` : '`❌ Not Set`'}\n\n` +
-            `### 🚀 Server Boost Tiers\n` +
-            `• **Role 4 (1 Boost):** ${roles.ROLE_1_BOOST ? `<@&${roles.ROLE_1_BOOST}>` : '`❌ Not Set`'}\n` +
-            `• **Role 5 (2 Boosts):** ${roles.ROLE_2_BOOST ? `<@&${roles.ROLE_2_BOOST}>` : '`❌ Not Set`'}\n\n` +
+            `### 📩 Slot 1 (Invite Tier)\n` +
+            `• **Slot 1 Role (2 Invites):** ${roles.ROLE_2_INVITES ? `<@&${roles.ROLE_2_INVITES}>` : '`❌ Not Set`'}\n\n` +
+            `### 🚀 Slot 2 (Server Boost Tier)\n` +
+            `• **Slot 2 Role (Server Boost):** ${roles.ROLE_1_BOOST ? `<@&${roles.ROLE_1_BOOST}>` : '`❌ Not Set`'}\n\n` +
             `-# Use \`/setuproles set\` to configure roles via Discord UI.`
         ));
         await message.reply({ components: [c], flags: MessageFlags.IsComponentsV2 });
