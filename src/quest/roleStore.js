@@ -1,5 +1,5 @@
 /**
- * roleStore.js - Roles Per Guild - MongoDB Persistent - Multi Server Safe (Updated with Trial & Premium)
+ * roleStore.js - Roles Per Guild - MongoDB Persistent - Strict 2-Slot System
  * Location: src/quest/roleStore.js
  */
 
@@ -9,16 +9,10 @@ import path from 'path';
 
 const STORE_PATH = './data/roles.json';
 const COLLECTION_NAME = 'roles_data';
-const COLLECTION_INVITES = 'invites_data';
 
 const DEFAULT_ROLES = {
-    ROLE_TRIAL: null,      // Trial Key Activation Role
-    ROLE_PREMIUM: null,    // Premium Key Activation Role
-    ROLE_2_INVITES: null,  // Role 1: 2 Invites - Slot 2
-    ROLE_5_INVITES: null,  // Role 2: 5 Invites - Slot 3
-    ROLE_10_INVITES: null, // Role 3: 10 Invites - Slot 4 (Invites)
-    ROLE_1_BOOST: null,    // Role 4: 1 Boost - Slot 4 (Boost)
-    ROLE_2_BOOST: null,    // Role 5: 2 Boosts - Slot 5 - Full
+    ROLE_2_INVITES: null,  // Slot 1: 2 Invites Role
+    ROLE_1_BOOST: null,    // Slot 2: Server Boost Role (Auto-Quest Locked)
 };
 
 const memoryCache = new Map();
