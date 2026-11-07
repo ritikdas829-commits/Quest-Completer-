@@ -1,5 +1,5 @@
 /**
- * slotUI.js - Strict 2-Slot System UI (Slot 1: 2 Invites | Slot 2: Boost)
+ * slotUI.js - Strict 2-Slot System UI with Clickable Locked Buttons & Error Popups
  * Location: src/quest/slotUI.js
  */
 
@@ -50,16 +50,10 @@ export function buildLinkModal(slotNumber = 1) {
     return modal;
 }
 
-/**
- * Checks member unlock status for exact 2 slots:
- * Slot 1: 2 Invites
- * Slot 2: Server Boost (Auto-Quest Eligible)
- */
 async function checkMemberSlotEligibility(member, inviteStore) {
     const guildId = member.guild?.id;
     const roles = getRoles(guildId || 'global');
 
-    // Fetch member invite count safely if tracker is available
     let userInvites = 0;
     try {
         if (inviteStore && typeof inviteStore.getUserInvites === 'function') {
@@ -85,14 +79,14 @@ async function checkMemberSlotEligibility(member, inviteStore) {
                 label: 'Invite Slot',
                 need: '2 Invites',
                 can: isSlot1Unlocked,
-                reason: isSlot1Unlocked ? 'Requirement Met' : 'Requires 2 server invites'
+                reason: isSlot1Unlocked ? 'Requirement Met' : 'Requires 2 server invites or role'
             },
             {
                 slot: 2,
                 label: 'Boost Slot (Auto-Quest)',
                 need: 'Server Boost',
                 can: isSlot2Unlocked,
-                reason: isSlot2Unlocked ? 'Requirement Met' : 'Requires Server Boost'
+                reason: isSlot2Unlocked ? 'Requirement Met' : 'Requires Server Boost to unlock'
             }
         ]
     };
@@ -106,7 +100,6 @@ export async function buildSlotPanel(member, inviteStore, tokenStore) {
     const eligibility = await checkMemberSlotEligibility(member, inviteStore);
     const { slots, userInvites, isBooster } = eligibility;
 
-    // Fetch all linked slots safely from TokenStore / MongoDB
     let accounts = [];
     try {
         const res = tokenStore && typeof tokenStore.getAllSlots === 'function' ? await tokenStore.getAllSlots(guildId, userId) : [];
@@ -127,7 +120,7 @@ export async function buildSlotPanel(member, inviteStore, tokenStore) {
         }
     }
 
-    // Container 1: Info & Header
+    // Container 1: Header
     const c1 = new ContainerBuilder().setAccentColor(0x5865F2);
     c1.addTextDisplayComponents(new TextDisplayBuilder().setContent(`# ${EMOJI.link_icon || EMOJI.slot_icon || '🔗'} 2-Slot Premium Token System`));
     c1.addTextDisplayComponents(new TextDisplayBuilder().setContent(
@@ -138,7 +131,7 @@ export async function buildSlotPanel(member, inviteStore, tokenStore) {
     ));
     c1.addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# Support server: ${SUPPORT_SERVER}`));
 
-    // Container 2: 2-Slot Account Configurations
+    // Container 2: Slots Management
     const c2 = new ContainerBuilder().setAccentColor(0x2B2D31);
     c2.addTextDisplayComponents(new TextDisplayBuilder().setContent(`## ${EMOJI.link_gear || EMOJI.slot_gear || '⚙️'} Slot Management`));
 
@@ -148,7 +141,7 @@ export async function buildSlotPanel(member, inviteStore, tokenStore) {
 
         if (!linked) {
             if (s.can) {
-                // Unlocked & Ready to Link
+                // Unlocked & Ready
                 c2.addTextDisplayComponents(new TextDisplayBuilder().setContent(
                     `### Slot #${s.slot} — ${s.label}\n` +
                     `• **User:** Not Linked\n` +
@@ -159,7 +152,7 @@ export async function buildSlotPanel(member, inviteStore, tokenStore) {
                     new ButtonBuilder().setCustomId(`link_slot_${s.slot}`).setLabel(`Link Slot #${s.slot}`).setStyle(ButtonStyle.Success).setEmoji('🔗')
                 ));
             } else {
-                // Locked Slot
+                // Locked Slot (Button enabled but shows error on click)[span_0](start_span)[span_0](end_span)
                 c2.addTextDisplayComponents(new TextDisplayBuilder().setContent(
                     `### Slot #${s.slot} — ${s.label} ${EMOJI.link_lock || EMOJI.slot_lock || '🔒'}\n` +
                     `• **Status:** Locked\n` +
@@ -167,7 +160,7 @@ export async function buildSlotPanel(member, inviteStore, tokenStore) {
                     `• **Note:** ${s.reason}`
                 ));
                 c2.addActionRowComponents(new ActionRowBuilder().addComponents(
-                    new ButtonBuilder().setCustomId(`locked_slot_${s.slot}`).setLabel(`Locked (${s.need})`).setStyle(ButtonStyle.Secondary).setDisabled(true).setEmoji('🔒')
+                    new ButtonBuilder().setCustomId(`link_slot_${s.slot}`).setLabel(`Link Slot #${s.slot} (Locked)`).setStyle(ButtonStyle.Secondary).setEmoji('🔒')
                 ));
             }
         } else {
@@ -221,14 +214,21 @@ export async function handleButton(interaction, client) {
         const eligibility = await checkMemberSlotEligibility(member, client.inviteStore);
         const slotData = eligibility.slots.find(s => s.slot === slotNum);
 
+        // Agar slot unlocked nahi hai toh modal open karne ke bajay error show karega[span_1](start_span)[span_1](end_span)
         if (!slotData?.can) {
-            const c = new ContainerBuilder().setAccentColor(0xFEE75C);
-            c.addTextDisplayComponents(new TextDisplayBuilder().setContent(`# ${EMOJI.link_lock || EMOJI.slot_lock || '🔒'} Slot #${slotNum} Locked\n**Need:** ${slotData?.need}\n${slotData?.reason}`));
+            const c = new ContainerBuilder().setAccentColor(0xED4245);
+            c.addTextDisplayComponents(new TextDisplayBuilder().setContent(
+                `# ${EMOJI.link_lock || EMOJI.slot_lock || '🔒'} Slot #${slotNum} Locked\n\n` +
+                `Aap is slot ko link nahi kar sakte kyunki iski requirement poori nahi hai!\n` +
+                `• **Required:** ${slotData?.need}\n` +
+                `• **Reason:** ${slotData?.reason}`
+            ));
             if (interaction.deferred || interaction.replied) {
                 return await interaction.followUp({ components: [c], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
             }
             return await interaction.reply({ components: [c], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
         }
+
         if (interaction.deferred || interaction.replied) return;
         return await interaction.showModal(buildLinkModal(slotNum));
     }
@@ -251,18 +251,6 @@ export async function handleButton(interaction, client) {
             return await interaction.editReply(panel);
         }
         return await interaction.update(panel);
-    }
-
-    if (rawId.startsWith('locked_slot_')) {
-        const slotNum = parseInt(rawId.split('_')[2]);
-        const eligibility = await checkMemberSlotEligibility(member, client.inviteStore);
-        const slotData = eligibility.slots.find(s => s.slot === slotNum);
-        const c = new ContainerBuilder().setAccentColor(0xFEE75C);
-        c.addTextDisplayComponents(new TextDisplayBuilder().setContent(`# ${EMOJI.link_lock || EMOJI.slot_lock || '🔒'} Slot #${slotNum} Locked\n**${slotData?.reason}**\nNeed: ${slotData?.need}`));
-        if (interaction.deferred || interaction.replied) {
-            return await interaction.followUp({ components: [c], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
-        }
-        return await interaction.reply({ components: [c], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
     }
 }
 
@@ -302,7 +290,7 @@ export async function handleModal(interaction, client) {
 
         const successContainer = new ContainerBuilder().setAccentColor(0x57F287);
         successContainer.addTextDisplayComponents(new TextDisplayBuilder().setContent(
-            `# ${EMOJI.link_success || EMOJI.slot_success || '✅'} Slot #${slot} (${slot === 1 ? '2 Invites' : 'Boost'}) Linked!\nLinked as **"${data.username}"**.\n\nYou can now run quest commands for this slot.`
+            `# ${EMOJI.link_success || EMOJI.slot_success || '✅'} Slot #${slot} Linked!\nLinked as **"${data.username}"**.`
         ));
         await interaction.editReply({ components: [successContainer], flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral });
     } catch (e) {
